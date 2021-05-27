@@ -1,0 +1,13 @@
+<package>
+  <description brief="scenario_world">
+
+     scenario_world
+
+  </description>
+  <author>sapcw7</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/scenario_world</url>
+  <depend package="cob_bringup_sim"/>
+
+</package>

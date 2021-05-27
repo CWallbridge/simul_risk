@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <world name="default">
+    <!-- A global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <!-- A ground plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <actor name="actor">
+      <skin>
+        <filename>/home/risk/ws/src/simul_risk/worlds/corrected.dae</filename><!--Writing.dae--><!--/home/risk/Downloads/corrected(46).dae|||/home/risk/ws/src/simul_risk/worlds/worlds/corrected.dae-->
+      </skin>
+      
+      <animation name="sitting">
+        <filename>/home/risk/ws/src/simul_risk/worlds/corrected.dae</filename>
+      </animation>
+      
+      <script>
+      <loop>true</loop> <!-- (x,y,z,ang,ang,ang) z is height0.989685 0.881215 0.638730 1.130000 0.000000 0.000000-->
+      
+      <delay_start>0.000000</delay_start>
+      <auto_start>true</auto_start>
+      <trajectory id="0" type="sitting">
+          <waypoint>
+            <time>0</time>
+            <pose>1.2 0.6 0 0 0 0 -1.5708</pose> <!--0.989685 0.881215 0 0 0 -1.5708-->
+          </waypoint>
+
+          <waypoint>
+            <time>5</time>
+            <pose>1.2 0.6 0 0 0 0 -1.5708</pose>
+          </waypoint>
+
+
+        </trajectory>
+      </script>
+    </actor>
+  </world>
+</sdf>
