@@ -15,8 +15,7 @@ Contents
 'export ROBOT_ENV=ipa-apartment'
 'export ROBOT=cob4-8'
 1. Clone the Repository
- 1. 'cd simul_risk/launch'
-  1. Change the robot.launch "world\_name" from "worlds/empty.world" to the full path. For example "/home/risk/ws/src/simul_risk/worlds/empty.world"
+  1. Ensure that the simul_risk folder is in your ROS_PACKAGE_PATH
  1. 'cd ../worlds'
   1. Change the relative paths inside the <filename> tags from "worlds/corrected.dae" to the full path. For example "/home/risk/ws/src/simul_risk/worlds/corrected.dae"
   1. 'cd ..'
