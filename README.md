@@ -27,7 +27,7 @@ Contents
  1. You also need to download (from Gazebo) and change the paths to point to the right location of the models in main.py script line 17 (definition of object_locations)
 1. Make the Coke can static
  1. Navigate to "/home/your_username/.gazebo/models/coke_can/model.sdf" and open it in text editor.
- 1. 
+ 
 If all has gone well, then the once the script is launched, the robot will perform the scenario.
 ## Known Issues
 1. Grasping from the main.py script is buggy. The coke can sticks to the hand too early.
