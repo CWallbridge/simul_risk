@@ -1,4 +1,5 @@
-
+#Most of the functionality has now been moved to risk_uwds!
+#This script now only spawns coke,table and chair. Perhaps in the future, it should be deleted entirely in favour of configuring the world file directly.
 import rospy
 
 from gazebo_msgs.srv import SpawnModel, SpawnModelRequest, DeleteModel, DeleteModelRequest, GetWorldProperties#spawn coke & table
@@ -164,20 +165,21 @@ def robot_update(data):
 
 #Spawn objects
 spawn_object("Table")
-spawn_object("Coke",position=[0.66,0.21,0.80])#we also need to spawn a chair
+spawn_object("Coke",position=[1.1,0.35,0.80])#[0.66,0.21,0.80] this position is the one programmed for the scenario. This one is for trialing the counterfactual code.
 spawn_object("Chair", position=[1.2,0.8,0],model_type = "urdf")
 #Check if the can gets close ot robot's  arm. if so, attach it
-rospy.Subscriber("/gazebo/link_states", LinkStates, armUpdate)
-rospy.Subscriber("/gazebo/model_states", ModelStates, robot_update)#Used for getting robot's position. & Updating coke position
-pub = rospy.Publisher('/gazebo/set_model_state', ModelState, queue_size=10)
-pub1 = rospy.Publisher('/docker_control/move_base_linear_simple/goal', PoseStamped, queue_size=10)#Changed from /move_base_simple/goal
-#Move arms to side so robot can pass through the hallway
-SCRIPT = MyScript()
-SCRIPT.Start()
-#Move robot's base to start position
-print("Moving the robot to table")
-move_to_table()
-#Move robot's arm to grab the coke
-print("Moving the arm to coke")
-SCRIPT.liftCoke()
-rospy.spin()
+if False:
+    rospy.Subscriber("/gazebo/link_states", LinkStates, armUpdate)
+    rospy.Subscriber("/gazebo/model_states", ModelStates, robot_update)#Used for getting robot's position. & Updating coke position
+    pub = rospy.Publisher('/gazebo/set_model_state', ModelState, queue_size=10)
+    pub1 = rospy.Publisher('/docker_control/move_base_linear_simple/goal', PoseStamped, queue_size=10)#Changed from /move_base_simple/goal
+    #Move arms to side so robot can pass through the hallway
+    SCRIPT = MyScript()
+    SCRIPT.Start()
+    #Move robot's base to start position
+    print("Moving the robot to table")
+    move_to_table()
+    #Move robot's arm to grab the coke
+    print("Moving the arm to coke")
+    SCRIPT.liftCoke()
+    rospy.spin()
