@@ -1,13 +1,26 @@
-#Most of the functionality has now been moved to risk_uwds!
-#This script now only spawns coke,table and chair. Perhaps in the future, it should be deleted entirely in favour of configuring the world file directly.
-
 import rospy
+import os
+import sys
+
 from gazebo_msgs.srv import SpawnModel, SpawnModelRequest, DeleteModel, DeleteModelRequest, GetWorldProperties#spawn coke & table
 from geometry_msgs.msg import Pose
 
 #Var definitions
 #Dictionary containing all relevant paths
-object_locations = {"Table":"/home/risk/.gazebo/models/cafe_table/model.sdf","Coke":"/home/risk/.gazebo/models/coke_can/model.sdf","Chair":"/home/risk/ws/dev/share/cob_gazebo_objects/objects/chair_ikea_borje.urdf"}
+
+#Default path for gazebo models
+models_paths = os.path.expanduser('~/.gazebo/models/')
+
+if 'GAZEBO_MODEL_PATH' in os.environ:
+    models_paths = os.environ['GAZEBO_MODEL_PATH']
+
+#Default path for the Care-o-bot gazebo models
+cob_models_path = os.path.expanduser('~/ros/melodic/dev/devel/share/cob_gazebo_objects/')
+
+if 'COB_MODEL_PATH' in os.environ:
+    cob_models_path = os.environ['COB_MODEL_PATH']
+
+object_locations = {"Table":str(models_paths) + "cafe_table/model.sdf","Coke":str(models_paths) + "coke_can/model.sdf","Chair":str(cob_models_path) + "objects/chair_ikea_borje.urdf"}
 
 def make_pose(position,quaternion):
     #make a pose of object given xyz, and quaternion
@@ -38,8 +51,8 @@ def spawn_object(name,position=[1,0,0],quaternion=[0,0,0,1],model_type = "sdf"):
 
 
 if __name__ == "__main__":
-	#Actual script
-	#Spawn objects
-	spawn_object("Table")
-	spawn_object("Coke",position=[0.89,0.37,0.80])#[0.66,0.21,0.80] this position is the one programmed for the scenario. This one is for trialing the counterfactual code.
-	spawn_object("Chair", position=[1.2,0.8,0],model_type = "urdf")
+    #Actual script
+    #Spawn objects
+    spawn_object("Table")
+    spawn_object("Coke",position=[0.89,0.37,0.80])#[0.66,0.21,0.80] this position is the one programmed for the scenario. This one is for trialing the counterfactual code.
+    spawn_object("Chair", position=[1.2,0.8,0],model_type = "urdf")
