@@ -34,9 +34,9 @@ def make_pose(position,quaternion):
     object_pose.orientation.w = quaternion[3]
     return object_pose
     
-def spawn_object(name,position=[1,0,0],quaternion=[0,0,0,1],model_type = "sdf"):
+def spawn_object(name,model_path,position=[1,0,0],quaternion=[0,0,0,1],model_type = "sdf"):
     #Read xml file
-    f = open(object_locations[name])
+    f = open(model_path)
     
     # spawn new model (Chair)
     req = SpawnModelRequest()
@@ -51,8 +51,7 @@ def spawn_object(name,position=[1,0,0],quaternion=[0,0,0,1],model_type = "sdf"):
 
 
 if __name__ == "__main__":
-    #Actual script
     #Spawn objects
-    spawn_object("Table")
-    spawn_object("Coke",position=[0.89,0.37,0.80])#[0.66,0.21,0.80] this position is the one programmed for the scenario. This one is for trialing the counterfactual code.
-    spawn_object("Chair", position=[1.2,0.8,0],model_type = "urdf")
+    spawn_object("Table", object_locations["Table"])
+    spawn_object("Coke", object_locations["Coke"],position=[0.89,0.37,0.80])#[0.66,0.21,0.80] this position is the one programmed for the scenario. This one is for trialing the counterfactual code.
+    spawn_object("Chair", object_locations["Chair"], position=[1.2,0.8,0],model_type = "urdf")
