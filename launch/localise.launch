@@ -1,3 +1,4 @@
 <launch>
-    <node name="static_localisation_world_to_odom_combined" pkg="tf" type="static_transform_publisher" args="-8 -4 0 0 0 0 world odom_combined 10"/>
+    <node name="static_localisation_world_to_odom_combined" pkg="tf" type="static_transform_publisher" args="0.200231 -0.003800 0 0 0 0 world odom_combined 10"/>
+    <node name="static_world_to_gazebo_world" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 world gazebo_world 10" />
 </launch>
