@@ -27,12 +27,12 @@
       <trajectory id="0" type="sitting">
           <waypoint>
             <time>0</time>
-            <pose>1.2 0.6 0 0 0 0 -1.5708</pose> <!--0.989685 0.881215 0 0 0 -1.5708-->
+            <pose>1.17 0.6 0 0 0 0 -1.5708</pose> <!--0.989685 0.881215 0 0 0 -1.5708-->
           </waypoint>
 
           <waypoint>
             <time>5</time>
-            <pose>1.2 0.6 0 0 0 0 -1.5708</pose>
+            <pose>1.17 0.6 0 0 0 0 -1.5708</pose>
           </waypoint>
 
 

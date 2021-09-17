@@ -26,12 +26,14 @@
 	</include>
 
 	<!-- startup simulated robot"$(find cob_gazebo)/launch/robot.launch" -->
-	<include file= "/home/risk/ros/scenario_world/modifiedPos/spawnRobot.launch">
+	<include file= "/home/risk/ws/src/simul_risk/modifiedPos/spawnRobot.launch">
 		<arg name="robot" value="$(arg robot)" />
 		<arg name="robot_env" value="$(arg robot_env)" />
 		<arg name="pkg_robot_config" value="$(arg pkg_robot_config)" />
 		<arg name="paused" value="$(arg paused)" />
 		<arg name="initial_config" value="$(arg initial_config)"/>
 	</include>
+	<!--<include file= "/home/risk/ws/src/simul_risk/launch/localise.launch">
+	</include>-->
 
 </launch>

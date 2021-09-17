@@ -8,11 +8,12 @@ import tf_conversions.posemath as pm
 
 from gazebo_msgs.srv import SpawnModel, SpawnModelRequest, DeleteModel, DeleteModelRequest, GetWorldProperties#spawn coke & table
 from geometry_msgs.msg import Pose
-from gazebo_msgs.msg import LinkStates
+from gazebo_msgs.msg import LinkStates, ModelStates
 from tf.transformations import *
 
 tfBroadcaster = tf.TransformBroadcaster()
 submodelsToBeIgnored = []
+uselink = {}
 lastUpdateTime = None
 updatePeriod = 0.05
 model_cache = {}
@@ -32,7 +33,7 @@ cob_models_path = os.path.expanduser('~/ros/melodic/dev/devel/share/cob_gazebo_o
 if 'COB_MODEL_PATH' in os.environ:
     cob_models_path = os.environ['COB_MODEL_PATH']
 
-object_locations = {"Table":str(models_paths) + "cafe_table/model.sdf","Coke":str(models_paths) + "coke_can/model.sdf","Chair":str(cob_models_path) + "objects/chair_ikea_borje.urdf"}
+object_locations = {"Table":str(models_paths) + "cafe_table/model.sdf","Coke":str(models_paths) + "coke_can/model.sdf","Chair":str(cob_models_path) + "objects/chair_ikea_borje.urdf","Paper":str(models_paths) + "paper/model.sdf"}
 
 def make_pose(position,quaternion):
     #make a pose of object given xyz, and quaternion
@@ -71,69 +72,99 @@ def is_ignored(link_name):
         return False
 
 def on_link_states_msg(link_states_msg):
-
+    """Publishes human tfs to /tf ros topic"""
     global lastUpdateTime
     sinceLastUpdateDuration = rospy.get_rostime() - lastUpdateTime
     if sinceLastUpdateDuration.to_sec() < updatePeriod:
         return
     lastUpdateTime = rospy.get_rostime()
 
-    poses = {'gazebo_world': identity_matrix()}
+    poses = {'gazebo_world': identity_matrix()}#world coordinate frame
+    relative_poses = {'gazebo_world': identity_matrix()}#relative to parent as defined in uselink frame
     for (link_idx, link_name) in enumerate(link_states_msg.name):
         poses[link_name] = pysdf.pose_msg2homogeneous(link_states_msg.pose[link_idx])
         #print('%s:\n%s' % (link_name, poses[link_name]))
+    for link_name in poses:
+        if link_name in child_link: #check if the link has a parent.
+            parent_name = child_link[link_name]
+            parent_tf = poses[parent_name]
+            relative_poses[link_name] = concatenate_matrices(inverse_matrix(parent_tf), poses[link_name])
 
+    #link gazebo_world to world.
+    parentinstance_link_name = 'gazebo_world'
+    translation, quaternion = pysdf.homogeneous2translation_quaternion(poses[parentinstance_link_name])
+    tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), parentinstance_link_name, "world")
     for (link_idx, link_name) in enumerate(link_states_msg.name):
-        #print(link_idx, link_name)
-        modelinstance_name = link_name.split('::')[0]
-        #print('modelinstance_name:', modelinstance_name)
-        model_name = pysdf.name2modelname(modelinstance_name)
-        #print('model_name:', model_name)
-        if not model_name in model_cache:
-            sdf = pysdf.SDF(model=model_name)
-            model_cache[model_name] = sdf.world.models[0] if len(sdf.world.models) >= 1 else None
-            if model_cache[model_name]:
-                rospy.loginfo('Loaded model: %s' % model_cache[model_name].name)
-            else:
-                rospy.loginfo('Unable to load model: %s' % model_name)
-        model = model_cache[model_name]
-        link_name_in_model = link_name.replace(modelinstance_name + '::', '')
-        if model:
-            link = model.get_link(link_name_in_model)
-            if link.tree_parent_joint:
-                parent_link = link.tree_parent_joint.tree_parent_link
-                parent_link_name = parent_link.get_full_name()
-                #print('parent:', parent_link_name)
-                parentinstance_link_name = parent_link_name.replace(model_name, modelinstance_name, 1)
-            else: # direct child of world
-                parentinstance_link_name = 'gazebo_world'
-        else: # Not an SDF model
-            parentinstance_link_name = 'gazebo_world'
-        #print('parentinstance:', parentinstance_link_name)
-        if is_ignored(parentinstance_link_name):
-            rospy.loginfo("Ignoring TF %s -> %s" % (parentinstance_link_name, link_name))
-            continue
-        pose = poses[link_name]
-        parent_pose = poses[parentinstance_link_name]
-        rel_tf = concatenate_matrices(inverse_matrix(parent_pose), pose)
-        translation, quaternion = pysdf.homogeneous2translation_quaternion(rel_tf)
-        #print('Publishing TF %s -> %s: t=%s q=%s' % (pysdf.sdf2tfname(parentinstance_link_name), pysdf.sdf2tfname(link_name), translation, quaternion))
-        tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), pysdf.sdf2tfname(link_name), pysdf.sdf2tfname(parentinstance_link_name))
-        lastUpdateTime = rospy.get_rostime()
+        #connect all links to gazebo world
+        if link_name in child_link:
+            parentinstance_link_name = child_link[link_name]
+            #print('parentinstance:', parentinstance_link_name)
+            if is_ignored(parentinstance_link_name):
+                rospy.loginfo("Ignoring TF %s -> %s" % (parentinstance_link_name, link_name))
+                continue
+            rel_pose = relative_poses[link_name]#change relative_poses to poses here to broadcast in world frame coordinates
+            translation, quaternion = pysdf.homogeneous2translation_quaternion(rel_pose)
+            #print('Publishing TF %s -> %s: t=%s q=%s' % (pysdf.sdf2tfname(parentinstance_link_name), pysdf.sdf2tfname(link_name), translation, quaternion))
+            tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), pysdf.sdf2tfname(link_name), pysdf.sdf2tfname(parentinstance_link_name))
+            #tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), pysdf.sdf2tfname(link_name), "world")
+            lastUpdateTime = rospy.get_rostime()
+def link_odom_world(data):
+    """links odom_combined to world frame dynamically."""
+    global lastUpdateTimeOdom
+    sinceLastUpdateDuration = rospy.get_rostime() - lastUpdateTimeOdom
+    if sinceLastUpdateDuration.to_sec() < updatePeriod:
+        return
+    lastUpdateTimeOdom = rospy.get_rostime()
+    r_i = data.name.index('robot')#robot index
+    r_p = data.pose[r_i]#robot pose
+    r_p_h = pysdf.pose_msg2homogeneous(r_p)
+    translation, quaternion = pysdf.homogeneous2translation_quaternion(r_p_h)
+    tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), "odom_combined", "world")
+
 
 if __name__ == "__main__":
     
     #Spawn objects
-    
+    spawn_object("Paper",object_locations["Paper"], position=[1.07,-0.05,1],quaternion=[0,0,1,0])#q = R.from_euler('xyz',[0, 0, 180], degrees = True),from scipy.spatial.transform import Rotation as R
     spawn_object("Table", object_locations["Table"])
-    spawn_object("Coke", object_locations["Coke"],position=[0.89,0.37,0.80])#[0.66,0.21,0.80] this position is the one programmed for the scenario. This one is for trialing the counterfactual code.
+    spawn_object("Coke", object_locations["Coke"],position=[0.86,0.40,0.81])#[0.75,0.37,0.81] this position is the one programmed for the scenario. This one is for trialing the counterfactual code.
     spawn_object("Chair", object_locations["Chair"], position=[1.2,0.8,0],model_type = "urdf")
     
     #Broadcast TF's for gazebo objects
+    global uselink,child_link#child -> parent.
+    uselink = {
+        "actor::foot_l":["actor::lowerleg_l","foot_l","knee_l"],
+        "actor::foot_r":["actor::lowerleg_r","foot_r","knee_r"],
+        "actor::hand_l":["actor::lowerarm_l","hand_l","elbow_l"],
+        "actor::hand_r":["actor::lowerarm_r","hand_r","elbow_r"],
+        "actor::head":["actor::spine_03","neck","spine_upper"],
+        "actor::head_end":["actor::head","head","neck"],
+        "actor::lowerarm_l":["actor::upperarm_l","elbow_l","shoulder_l"],
+        "actor::lowerarm_r":["actor::upperarm_r","elbow_r","shoulder_r"],
+        "actor::lowerleg_l":["actor::upperleg_l","knee_l","hip_l"],
+        "actor::lowerleg_r":["actor::upperleg_r","knee_r","hip_r"],
+        "actor::root":["gazebo_world","person","world"],
+        "actor::spine_03":["actor::root","spine_upper","person"],
+        "actor::spine_01":["actor::spine_03","spine_lower","spine_upper"],
+        "actor::upperarm_l":["actor::spine_03","shoulder_l","spine_upper"],
+        "actor::upperarm_r":["actor::spine_03","shoulder_r","spine_upper"],
+        "actor::upperleg_l":["actor::spine_01","hip_l","spine_lower"],
+        "actor::upperleg_r":["actor::spine_01","hip_r","spine_lower"],
+    }
+    child_link = {k: uselink[k][0] for k in uselink}
+    #convert     
+    global model_name_path 
+    cur_path = os.path.dirname(__file__)#from 
+    model_name_path = {
+            "actor":os.path.relpath('..\\worlds\\testfile.txt', cur_path),
+
+    }
     rospy.init_node("simul_risk")
     
-    global lastUpdateTime
+    global lastUpdateTime, lastUpdateTimeOdom
     lastUpdateTime = rospy.get_rostime()
+    lastUpdateTimeOdom = rospy.get_rostime()
     linkStatesSub = rospy.Subscriber('gazebo/link_states', LinkStates, on_link_states_msg)
-    
+    odom_combined_linker = rospy.Subscriber('gazebo/model_states', ModelStates, link_odom_world)
+
     rospy.spin()

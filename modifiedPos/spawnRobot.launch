@@ -14,7 +14,10 @@
 	</include>
 
 	<!-- push robot_description to factory and spawn robot in gazebo -->
-	<node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -x -8.0 -y -4.0 -z 0.1 $(arg initial_config) -wait $(arg robot_env)" respawn="false" output="screen" />
+	<node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -x 0.33 -y 0 -z 0 $(arg initial_config) -wait $(arg robot_env)" respawn="false" output="screen" />
 
 </launch>
+<!-- depricated -x -8.0 -y -4.0 -z 0.1 -->
+
 <!-- 2d navgoal positions -1,-3.8,0 ... 0,0,0-->
+
