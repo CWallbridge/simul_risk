@@ -73,7 +73,7 @@ def is_ignored(link_name):
 
 def on_link_states_msg(link_states_msg):
     """Publishes human tfs to /tf ros topic"""
-    global lastUpdateTime
+    global lastUpdateTime,uselink
     sinceLastUpdateDuration = rospy.get_rostime() - lastUpdateTime
     if sinceLastUpdateDuration.to_sec() < updatePeriod:
         return
@@ -85,8 +85,8 @@ def on_link_states_msg(link_states_msg):
         poses[link_name] = pysdf.pose_msg2homogeneous(link_states_msg.pose[link_idx])
         #print('%s:\n%s' % (link_name, poses[link_name]))
     for link_name in poses:
-        if link_name in child_link: #check if the link has a parent.
-            parent_name = child_link[link_name]
+        if link_name in parent_link: #check if the link has a parent.
+            parent_name = parent_link[link_name]
             parent_tf = poses[parent_name]
             relative_poses[link_name] = concatenate_matrices(inverse_matrix(parent_tf), poses[link_name])
 
@@ -94,10 +94,11 @@ def on_link_states_msg(link_states_msg):
     parentinstance_link_name = 'gazebo_world'
     translation, quaternion = pysdf.homogeneous2translation_quaternion(poses[parentinstance_link_name])
     tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), parentinstance_link_name, "world")
+    
     for (link_idx, link_name) in enumerate(link_states_msg.name):
         #connect all links to gazebo world
-        if link_name in child_link:
-            parentinstance_link_name = child_link[link_name]
+        if link_name in parent_link:
+            parentinstance_link_name = parent_link[link_name]
             #print('parentinstance:', parentinstance_link_name)
             if is_ignored(parentinstance_link_name):
                 rospy.loginfo("Ignoring TF %s -> %s" % (parentinstance_link_name, link_name))
@@ -105,9 +106,10 @@ def on_link_states_msg(link_states_msg):
             rel_pose = relative_poses[link_name]#change relative_poses to poses here to broadcast in world frame coordinates
             translation, quaternion = pysdf.homogeneous2translation_quaternion(rel_pose)
             #print('Publishing TF %s -> %s: t=%s q=%s' % (pysdf.sdf2tfname(parentinstance_link_name), pysdf.sdf2tfname(link_name), translation, quaternion))
-            tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), pysdf.sdf2tfname(link_name), pysdf.sdf2tfname(parentinstance_link_name))
+            tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), pysdf.sdf2tfname(uselink[link_name][1]), pysdf.sdf2tfname(uselink[link_name][2]))
             #tfBroadcaster.sendTransform(translation, quaternion, rospy.get_rostime(), pysdf.sdf2tfname(link_name), "world")
             lastUpdateTime = rospy.get_rostime()
+            
 def link_odom_world(data):
     """links odom_combined to world frame dynamically."""
     global lastUpdateTimeOdom
@@ -124,6 +126,8 @@ def link_odom_world(data):
 
 if __name__ == "__main__":
     
+    global  uselink,parent_link,model_name_path,lastUpdateTime,lastUpdateTimeOdom 
+    
     #Spawn objects
     spawn_object("Paper",object_locations["Paper"], position=[1.07,-0.05,1],quaternion=[0,0,1,0])#q = R.from_euler('xyz',[0, 0, 180], degrees = True),from scipy.spatial.transform import Rotation as R
     spawn_object("Table", object_locations["Table"])
@@ -131,7 +135,7 @@ if __name__ == "__main__":
     spawn_object("Chair", object_locations["Chair"], position=[1.2,0.8,0],model_type = "urdf")
     
     #Broadcast TF's for gazebo objects
-    global uselink,child_link#child -> parent.
+
     uselink = {
         "actor::foot_l":["actor::lowerleg_l","foot_l","knee_l"],
         "actor::foot_r":["actor::lowerleg_r","foot_r","knee_r"],
@@ -151,17 +155,17 @@ if __name__ == "__main__":
         "actor::upperleg_l":["actor::spine_01","hip_l","spine_lower"],
         "actor::upperleg_r":["actor::spine_01","hip_r","spine_lower"],
     }
-    child_link = {k: uselink[k][0] for k in uselink}
+    parent_link = {k: uselink[k][0] for k in uselink}
     #convert     
-    global model_name_path 
-    cur_path = os.path.dirname(__file__)#from 
+
+    cur_path = os.path.dirname(__file__)#from
+    
     model_name_path = {
             "actor":os.path.relpath('..\\worlds\\testfile.txt', cur_path),
-
     }
+    
     rospy.init_node("simul_risk")
     
-    global lastUpdateTime, lastUpdateTimeOdom
     lastUpdateTime = rospy.get_rostime()
     lastUpdateTimeOdom = rospy.get_rostime()
     linkStatesSub = rospy.Subscriber('gazebo/link_states', LinkStates, on_link_states_msg)
