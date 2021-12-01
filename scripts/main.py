@@ -154,6 +154,7 @@ if __name__ == "__main__":
         "actor::upperarm_r":["actor::spine_03","shoulder_r","spine_upper"],
         "actor::upperleg_l":["actor::spine_01","hip_l","spine_lower"],
         "actor::upperleg_r":["actor::spine_01","hip_r","spine_lower"],
+        "Coke::link":["gazebo_world","coke","world"]
     }
     parent_link = {k: uselink[k][0] for k in uselink}
     #convert     
